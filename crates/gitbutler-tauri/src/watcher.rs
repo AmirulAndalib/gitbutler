@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use futures::executor::block_on;
 use gitbutler_core::projects::{self, Project, ProjectId};
-use gitbutler_core::{assets, virtual_branches};
+use gitbutler_core::{assets, users, virtual_branches};
 use tauri::{AppHandle, Manager};
 use tracing::instrument;
 
@@ -75,11 +75,13 @@ pub struct Watchers {
 
 fn handler_from_app(app: &AppHandle) -> anyhow::Result<gitbutler_watcher::Handler> {
     let projects = app.state::<projects::Controller>().inner().clone();
+    let users = app.state::<users::Controller>().inner().clone();
     let vbranches = app.state::<virtual_branches::Controller>().inner().clone();
     let assets_proxy = app.state::<assets::Proxy>().inner().clone();
 
     Ok(gitbutler_watcher::Handler::new(
         projects,
+        users,
         vbranches,
         assets_proxy,
         {
@@ -101,10 +103,9 @@ impl Watchers {
     pub fn watch(&self, project: &projects::Project) -> Result<()> {
         let handler = handler_from_app(&self.app_handle)?;
 
-        let project_id = project.id;
         let project_path = project.path.clone();
 
-        let handle = gitbutler_watcher::watch_in_background(handler, project_path, project_id)?;
+        let handle = gitbutler_watcher::watch_in_background(handler, project_path, project.id)?;
         block_on(self.watcher.lock()).replace(handle);
         Ok(())
     }
@@ -117,8 +118,21 @@ impl Watchers {
         {
             handle.post(action).await.context("failed to post event")
         } else {
-            Err(anyhow::anyhow!("watcher not found",))
+            Err(anyhow::anyhow!(
+                "matching watcher to post event not found, wanted {wanted}, got {actual:?}",
+                wanted = action.project_id(),
+                actual = watcher.as_ref().map(|w| w.project_id())
+            ))
         }
+    }
+
+    pub async fn flush(&self) -> Result<()> {
+        let watcher = self.watcher.lock().await;
+        if let Some(handle) = watcher.as_ref() {
+            handle.flush()?;
+        }
+
+        Ok(())
     }
 
     pub async fn stop(&self, project_id: ProjectId) {

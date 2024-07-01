@@ -5,11 +5,9 @@ import type { EventCallback, EventName } from '@tauri-apps/api/event';
 export enum Code {
 	Unknown = 'errors.unknown',
 	Validation = 'errors.validation',
-	Projects = 'errors.projects',
 	ProjectsGitAuth = 'errors.projects.git.auth',
-	ProjectsGitRemote = 'errors.projects.git.remote',
-	ProjectHead = 'errors.projects.head',
-	ProjectConflict = 'errors.projects.conflict'
+	DefaultTargetNotFound = 'errors.projects.default_target.not_found',
+	CommitSigningFailed = 'errors.commit.signing_failed'
 }
 
 export class UserError extends Error {
@@ -26,8 +24,15 @@ export class UserError extends Error {
 		const cause = error instanceof Error ? error : undefined;
 		const code = error.code ?? Code.Unknown;
 		const message = error.message ?? error;
-		return new UserError(message, code, cause);
+		return new UserError(capitalize(message), code, cause);
 	}
+}
+
+function capitalize(str: string): string {
+	if (str.length === 0) {
+		return str;
+	}
+	return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export async function invoke<T>(command: string, params: Record<string, unknown> = {}): Promise<T> {

@@ -1,6 +1,10 @@
 {
 	"name": "git-butler-tauri",
 	"private": true,
+	"engines": {
+		"node": ">=20.11"
+	},
+	"packageManager": "pnpm@9.2.0",
 	"scripts": {
 		"dev": "pnpm --filter @gitbutler/ui run dev",
 		"test": "pnpm --filter @gitbutler/ui run test",

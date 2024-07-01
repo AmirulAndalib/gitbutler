@@ -1,35 +1,45 @@
 import { Snapshot, SnapshotDiff } from './types';
 import { invoke } from '$lib/backend/ipc';
 import { plainToInstance } from 'class-transformer';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
 export class HistoryService {
 	cursor: string | undefined = undefined;
 
 	readonly loading = writable(false);
+	readonly isAllLoaded = writable(false);
 	readonly snapshots = writable<Snapshot[]>([], (set) => {
 		// Load snapshots when going from 0 -> 1 subscriber.
-		this.fetch().then((x) => set(x));
+		this.load();
 		return () => {
 			// Clear store when component last subscriber unsubscribes.
 			set([]);
 			this.cursor = undefined;
+			this.isAllLoaded.set(true);
 		};
 	});
 
 	constructor(private projectId: string) {}
 
 	async load() {
-		if (this.cursor) this.cursor = undefined;
-		this.snapshots.set(await this.fetch());
-		this.loading.set(false);
+		const data = await this.fetch();
+		this.snapshots.set(data);
+		this.cursor = data[data.length - 1].id;
 	}
 
 	async loadMore() {
-		if (!this.cursor) throw new Error('Unable to load more without a cursor');
-		const more = await this.fetch(this.cursor);
+		if (!this.cursor) throw new Error('Not without a cursor');
+		if (get(this.isAllLoaded)) return; // Nothing to do.
+
 		// TODO: Update API so we don't have to .slice()
-		this.snapshots.update((snapshots) => [...snapshots, ...more.slice(1)]);
+		const more = (await this.fetch(this.cursor)).slice(1);
+
+		if (more.length === 0) {
+			this.isAllLoaded.set(true);
+		} else {
+			this.snapshots.update((snapshots) => [...snapshots, ...more]);
+			this.cursor = more[more.length - 1].id;
+		}
 	}
 
 	private async fetch(after?: string) {
@@ -39,7 +49,6 @@ export class HistoryService {
 			sha: after,
 			limit: 32
 		});
-		this.cursor = resp.length > 0 ? resp[resp.length - 1].id : undefined;
 		this.loading.set(false);
 		return plainToInstance(Snapshot, resp);
 	}
@@ -69,5 +78,5 @@ export class HistoryService {
 
 export function createdOnDay(d: Date) {
 	const t = new Date();
-	return `${t.toDateString() == d.toDateString() ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })}, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+	return `${t.toDateString() === d.toDateString() ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })}, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 }

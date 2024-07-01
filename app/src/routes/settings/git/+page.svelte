@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { AuthService } from '$lib/backend/auth';
 	import { GitConfigService } from '$lib/backend/gitConfigService';
-	import Button from '$lib/components/Button.svelte';
-	import Link from '$lib/components/Link.svelte';
 	import SectionCard from '$lib/components/SectionCard.svelte';
-	import Spacer from '$lib/components/Spacer.svelte';
-	import TextBox from '$lib/components/TextBox.svelte';
-	import Toggle from '$lib/components/Toggle.svelte';
-	import ContentWrapper from '$lib/components/settings/ContentWrapper.svelte';
+	import ContentWrapper from '$lib/settings/ContentWrapper.svelte';
+	import Button from '$lib/shared/Button.svelte';
+	import Link from '$lib/shared/Link.svelte';
+	import Spacer from '$lib/shared/Spacer.svelte';
+	import TextBox from '$lib/shared/TextBox.svelte';
+	import Toggle from '$lib/shared/Toggle.svelte';
 	import { copyToClipboard } from '$lib/utils/clipboard';
 	import { getContext } from '$lib/utils/context';
 	import { openExternalUrl } from '$lib/utils/url';
@@ -26,7 +26,7 @@
 
 	onMount(async () => {
 		sshKey = await authService.getPublicKey();
-		annotateCommits = (await gitConfig.get('gitbutler.gitbutlerCommitter')) == '1';
+		annotateCommits = (await gitConfig.get('gitbutler.gitbutlerCommitter')) === '1';
 	});
 </script>
 
@@ -45,7 +45,7 @@
 			</Link>
 		</svelte:fragment>
 		<svelte:fragment slot="actions">
-			<Toggle id="committerSigning" checked={annotateCommits} on:change={toggleCommitterSigning} />
+			<Toggle id="committerSigning" checked={annotateCommits} on:click={toggleCommitterSigning} />
 		</svelte:fragment>
 	</SectionCard>
 
@@ -65,7 +65,7 @@
 			</Button>
 			<Button
 				style="ghost"
-				kind="solid"
+				outline
 				icon="open-link"
 				on:mousedown={() => {
 					openExternalUrl('https://github.com/settings/ssh/new');

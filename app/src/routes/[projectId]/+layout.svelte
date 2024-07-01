@@ -1,16 +1,21 @@
 <script lang="ts">
 	import { listen } from '$lib/backend/ipc';
 	import { Project } from '$lib/backend/projects';
+	import { BranchDragActionsFactory } from '$lib/branches/dragActions';
 	import { BranchService } from '$lib/branches/service';
-	import History from '$lib/components/History.svelte';
-	import Navigation from '$lib/components/Navigation.svelte';
+	import { CommitDragActionsFactory } from '$lib/commits/dragActions';
 	import NoBaseBranch from '$lib/components/NoBaseBranch.svelte';
 	import NotOnGitButlerBranch from '$lib/components/NotOnGitButlerBranch.svelte';
 	import ProblemLoadingRepo from '$lib/components/ProblemLoadingRepo.svelte';
 	import ProjectSettingsMenuAction from '$lib/components/ProjectSettingsMenuAction.svelte';
+	import { ReorderDropzoneManagerFactory } from '$lib/dragging/reorderDropzoneManager';
+	import History from '$lib/history/History.svelte';
 	import { HistoryService } from '$lib/history/history';
+	import Navigation from '$lib/navigation/Navigation.svelte';
 	import { persisted } from '$lib/persisted/persisted';
-	import * as hotkeys from '$lib/utils/hotkeys';
+	import * as events from '$lib/utils/events';
+	import { createKeybind } from '$lib/utils/hotkeys';
+	import { unsubscribe } from '$lib/utils/unsubscribe';
 	import { BaseBranchService, NoDefaultTarget } from '$lib/vbranches/baseBranch';
 	import { BranchController } from '$lib/vbranches/branchController';
 	import { BaseBranch } from '$lib/vbranches/types';
@@ -28,14 +33,16 @@
 		baseBranchService,
 		gbBranchActive$,
 		branchService,
-		branchController
+		branchController,
+		branchDragActionsFactory,
+		commitDragActionsFactory,
+		reorderDropzoneManagerFactory
 	} = data);
 
 	$: branchesError = vbranchService.branchesError;
 	$: baseBranch = baseBranchService.base;
 	$: baseError = baseBranchService.error;
 	$: projectError = projectService.error;
-	// const userSettings = getContextStoreBySymbol<Settings>(SETTINGS);
 
 	$: setContext(HistoryService, data.historyService);
 	$: setContext(VirtualBranchService, vbranchService);
@@ -44,6 +51,9 @@
 	$: setContext(BaseBranchService, baseBranchService);
 	$: setContext(BaseBranch, baseBranch);
 	$: setContext(Project, project);
+	$: setContext(BranchDragActionsFactory, branchDragActionsFactory);
+	$: setContext(CommitDragActionsFactory, commitDragActionsFactory);
+	$: setContext(ReorderDropzoneManagerFactory, reorderDropzoneManagerFactory);
 
 	const showHistoryView = persisted(false, 'showHistoryView');
 
@@ -53,10 +63,10 @@
 	$: if (projectId) setupFetchInterval();
 
 	function setupFetchInterval() {
-		baseBranchService.fetchFromTarget();
+		baseBranchService.fetchFromRemotes();
 		clearFetchInterval();
 		const intervalMs = 15 * 60 * 1000; // 15 minutes
-		intervalId = setInterval(async () => await baseBranchService.fetchFromTarget(), intervalMs);
+		intervalId = setInterval(async () => await baseBranchService.fetchFromRemotes(), intervalMs);
 	}
 
 	function clearFetchInterval() {
@@ -64,23 +74,33 @@
 	}
 
 	onMount(() => {
-		const unsubscribe = listen<string>('menu://view/history/clicked', () => {
-			$showHistoryView = !$showHistoryView;
-		});
-
-		// TODO: Refactor somehow
-		const unsubscribeHotkeys = hotkeys.on('$mod+Shift+H', () => {
+		const unsubscribe = listen<string>('menu://project/history/clicked', () => {
 			$showHistoryView = !$showHistoryView;
 		});
 
 		return async () => {
 			unsubscribe();
-			unsubscribeHotkeys();
 		};
+	});
+
+	const handleKeyDown = createKeybind({
+		'$mod+Shift+H': () => {
+			$showHistoryView = !$showHistoryView;
+		}
+	});
+
+	onMount(() => {
+		return unsubscribe(
+			events.on('openHistory', () => {
+				$showHistoryView = true;
+			})
+		);
 	});
 
 	onDestroy(() => clearFetchInterval());
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 <!-- forces components to be recreated when projectId changes -->
 {#key projectId}

@@ -1,3 +1,4 @@
+import { PromptService as AIPromptService } from '$lib/ai/promptService';
 import { AIService } from '$lib/ai/service';
 import { initAnalyticsIfEnabled } from '$lib/analytics/analytics';
 import { AuthService } from '$lib/backend/auth';
@@ -6,7 +7,9 @@ import { HttpClient } from '$lib/backend/httpClient';
 import { ProjectService } from '$lib/backend/projects';
 import { PromptService } from '$lib/backend/prompt';
 import { UpdaterService } from '$lib/backend/updater';
+import { LineManagerFactory } from '$lib/commitLines/lineManager';
 import { GitHubService } from '$lib/github/service';
+import { RemotesService } from '$lib/remotes/service';
 import { UserService } from '$lib/stores/user';
 import { mockTauri } from '$lib/testing/index';
 import lscache from 'lscache';
@@ -52,6 +55,9 @@ export async function load() {
 
 	const gitConfig = new GitConfigService();
 	const aiService = new AIService(gitConfig, httpClient);
+	const remotesService = new RemotesService();
+	const aiPromptService = new AIPromptService();
+	const lineManagerFactory = new LineManagerFactory();
 
 	return {
 		authService,
@@ -64,6 +70,9 @@ export async function load() {
 		// These observables are provided for convenience
 		remoteUrl$,
 		gitConfig,
-		aiService
+		aiService,
+		remotesService,
+		aiPromptService,
+		lineManagerFactory
 	};
 }

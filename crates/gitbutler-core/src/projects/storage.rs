@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -27,16 +28,7 @@ pub struct UpdateRequest {
     pub omit_certificate_check: Option<bool>,
     pub use_diff_context: Option<bool>,
     pub snapshot_lines_threshold: Option<usize>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Storage(#[from] std::io::Error),
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
-    #[error("project not found")]
-    NotFound,
+    pub use_new_locking: Option<bool>,
 }
 
 impl Storage {
@@ -48,11 +40,11 @@ impl Storage {
         Self::new(storage::Storage::new(path))
     }
 
-    pub fn list(&self) -> Result<Vec<project::Project>, Error> {
+    pub fn list(&self) -> Result<Vec<project::Project>> {
         match self.inner.read(PROJECTS_FILE)? {
             Some(projects) => {
                 let all_projects: Vec<project::Project> = serde_json::from_str(&projects)?;
-                let mut all_projects: Vec<project::Project> = all_projects
+                let mut all_projects: Vec<_> = all_projects
                     .into_iter()
                     .map(|mut p| {
                         // backwards compatibility for description field
@@ -66,27 +58,28 @@ impl Storage {
                     .collect();
 
                 all_projects.sort_by(|a, b| a.title.cmp(&b.title));
-
                 Ok(all_projects)
             }
             None => Ok(vec![]),
         }
     }
 
-    pub fn get(&self, id: &ProjectId) -> Result<project::Project, Error> {
-        let projects = self.list()?;
-        match projects.into_iter().find(|p| p.id == *id) {
-            Some(project) => Ok(project),
-            None => Err(Error::NotFound),
-        }
+    pub fn get(&self, id: ProjectId) -> Result<project::Project> {
+        self.try_get(id)?
+            .with_context(|| format!("project {id} not found"))
     }
 
-    pub fn update(&self, update_request: &UpdateRequest) -> Result<project::Project, Error> {
+    pub fn try_get(&self, id: ProjectId) -> Result<Option<project::Project>> {
+        let projects = self.list()?;
+        Ok(projects.into_iter().find(|p| p.id == id))
+    }
+
+    pub fn update(&self, update_request: &UpdateRequest) -> Result<project::Project> {
         let mut projects = self.list()?;
         let project = projects
             .iter_mut()
             .find(|p| p.id == update_request.id)
-            .ok_or(Error::NotFound)?;
+            .with_context(|| "project {id} not found for update")?;
 
         if let Some(title) = &update_request.title {
             project.title.clone_from(title);
@@ -130,6 +123,10 @@ impl Storage {
             project.snapshot_lines_threshold = Some(snapshot_lines_threshold);
         }
 
+        if let Some(use_new_locking) = update_request.use_new_locking {
+            project.use_new_locking = use_new_locking;
+        }
+
         self.inner
             .write(PROJECTS_FILE, &serde_json::to_string_pretty(&projects)?)?;
 
@@ -140,9 +137,9 @@ impl Storage {
             .clone())
     }
 
-    pub fn purge(&self, id: &ProjectId) -> Result<(), Error> {
+    pub fn purge(&self, id: ProjectId) -> Result<()> {
         let mut projects = self.list()?;
-        if let Some(index) = projects.iter().position(|p| p.id == *id) {
+        if let Some(index) = projects.iter().position(|p| p.id == id) {
             projects.remove(index);
             self.inner
                 .write(PROJECTS_FILE, &serde_json::to_string_pretty(&projects)?)?;
@@ -150,7 +147,7 @@ impl Storage {
         Ok(())
     }
 
-    pub fn add(&self, project: &project::Project) -> Result<(), Error> {
+    pub fn add(&self, project: &project::Project) -> Result<()> {
         let mut projects = self.list()?;
         projects.push(project.clone());
         let projects = serde_json::to_string_pretty(&projects)?;

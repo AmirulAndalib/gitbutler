@@ -1,25 +1,27 @@
 import { sentrySvelteKit } from '@sentry/sveltekit';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [
 		sentrySvelteKit({
-			autoInstrument: false,
-			sourceMapsUploadOptions: {
-				dryRun: process.env.SENTRY_RELEASE === undefined,
-				org: 'gitbutler',
-				project: 'app-js',
-				authToken: process.env.SENTRY_AUTH_TOKEN,
-				include: ['build'],
+			autoInstrument: false
+		}),
+		sentryVitePlugin({
+			org: 'gitbutler',
+			project: 'app-js',
+			authToken: process.env.SENTRY_AUTH_TOKEN,
+			telemetry: false,
+			disable: !process.env.SENTRY_RELEASE,
+			release: {
+				create: true,
 				cleanArtifacts: true,
 				setCommits: {
 					auto: true,
 					ignoreMissing: true,
 					ignoreEmpty: true
-				},
-				telemetry: false,
-				uploadSourceMaps: process.env.SENTRY_RELEASE !== undefined
+				}
 			}
 		}),
 		sveltekit()
@@ -41,11 +43,11 @@ export default defineConfig({
 	},
 	build: {
 		// Tauri supports es2021
-		target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
+		target: process.env.TAURI_PLATFORM === 'windows' ? 'chrome105' : 'safari13',
 		// minify production builds
 		minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
 		// ship sourcemaps for better sentry error reports
-		sourcemap: 'inline'
+		sourcemap: true
 	},
 	test: {
 		deps: {

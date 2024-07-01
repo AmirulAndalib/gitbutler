@@ -1,28 +1,26 @@
 <script lang="ts">
 	export let image: string;
 	export let width: string = '18rem';
-	export let hasBottomShift: boolean = true;
-
-	const SLOTS = $$props.$$slots;
+	export let hasBottomMargin: boolean = true;
 </script>
 
 <div class="empty-state-container">
 	<div
 		class="empty-state"
 		style:max-width={width}
-		style:margin-bottom={hasBottomShift ? 'var(--size-48)' : '0'}
+		style:margin-bottom={hasBottomMargin ? '48px' : '0'}
 	>
 		<div class="empty-state__image">
 			{@html image}
 		</div>
 
 		<div class="empty-state__content">
-			{#if SLOTS.title}
+			{#if $$slots.title}
 				<h2 class="empty-state__title text-base-body-15 text-semibold">
 					<slot name="title" />
 				</h2>
 			{/if}
-			{#if SLOTS.caption}
+			{#if $$slots.caption}
 				<p class="empty-state__caption text-base-body-13">
 					<slot name="caption" />
 				</p>
@@ -50,9 +48,9 @@
 		color: var(--clr-scale-ntrl-60);
 		background: var(--clr-bg-1);
 		justify-content: center;
-		padding: var(--size-48) 0;
+		padding: 48px 0;
 		width: 100%;
-		gap: var(--size-16);
+		gap: 16px;
 		border-radius: var(--radius-m);
 		cursor: default; /* was defaulting to text cursor */
 	}
@@ -60,7 +58,7 @@
 	.empty-state__content {
 		display: flex;
 		flex-direction: column;
-		gap: var(--size-8);
+		gap: 8px;
 	}
 
 	.empty-state__title {
@@ -78,6 +76,6 @@
 	}
 
 	.empty-state__image {
-		width: 7.5rem;
+		width: 120px;
 	}
 </style>

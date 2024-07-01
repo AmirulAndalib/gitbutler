@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use gitbutler_core::types::Sensitive;
+use gitbutler_core::{git::RepositoryExt, project_repository};
 use tempfile::{tempdir, TempDir};
 
 use crate::{init_opts, init_opts_bare, VAR_NO_CLEANUP};
@@ -49,7 +51,7 @@ impl Suite {
         let user = gitbutler_core::users::User {
             name: Some("test".to_string()),
             email: "test@email.com".to_string(),
-            access_token: "token".to_string(),
+            access_token: Sensitive("token".to_string()),
             ..Default::default()
         };
         self.users.set_user(&user).expect("failed to add user");
@@ -130,7 +132,7 @@ impl Case {
     pub fn refresh(mut self, suite: &Suite) -> Self {
         let project = suite
             .projects
-            .get(&self.project.id)
+            .get(self.project.id)
             .expect("failed to get project");
         let project_repository = gitbutler_core::project_repository::Repository::open(&project)
             .expect("failed to create project repository");
@@ -149,48 +151,51 @@ pub fn temp_dir() -> TempDir {
     tempdir().unwrap()
 }
 
-pub fn empty_bare_repository() -> (gitbutler_core::git::Repository, TempDir) {
+pub fn empty_bare_repository() -> (git2::Repository, TempDir) {
     let tmp = temp_dir();
     (
-        gitbutler_core::git::Repository::init_opts(&tmp, &init_opts_bare())
-            .expect("failed to init repository"),
+        git2::Repository::init_opts(&tmp, &init_opts_bare()).expect("failed to init repository"),
         tmp,
     )
 }
 
-pub fn test_repository() -> (gitbutler_core::git::Repository, TempDir) {
+pub fn test_repository() -> (git2::Repository, TempDir) {
     let tmp = temp_dir();
-    let repository = gitbutler_core::git::Repository::init_opts(&tmp, &init_opts())
-        .expect("failed to init repository");
+    let repository =
+        git2::Repository::init_opts(&tmp, &init_opts()).expect("failed to init repository");
+    project_repository::Config::from(&repository)
+        .set_local("commit.gpgsign", "false")
+        .unwrap();
     let mut index = repository.index().expect("failed to get index");
     let oid = index.write_tree().expect("failed to write tree");
-    let signature = gitbutler_core::git::Signature::now("test", "test@email.com").unwrap();
-    repository
-        .commit(
-            Some(&"refs/heads/master".parse().unwrap()),
-            &signature,
-            &signature,
-            "Initial commit",
-            &repository.find_tree(oid).expect("failed to find tree"),
-            &[],
-            None,
-        )
-        .expect("failed to commit");
+    let signature = git2::Signature::now("test", "test@email.com").unwrap();
+    let repo: &git2::Repository = &repository;
+    repo.commit_with_signature(
+        Some(&"refs/heads/master".parse().unwrap()),
+        &signature,
+        &signature,
+        "Initial commit",
+        &repository.find_tree(oid).expect("failed to find tree"),
+        &[],
+        None,
+    )
+    .expect("failed to commit");
     (repository, tmp)
 }
 
-pub fn commit_all(repository: &gitbutler_core::git::Repository) -> gitbutler_core::git::Oid {
+pub fn commit_all(repository: &git2::Repository) -> git2::Oid {
     let mut index = repository.index().expect("failed to get index");
     index
         .add_all(["."], git2::IndexAddOption::DEFAULT, None)
         .expect("failed to add all");
     index.write().expect("failed to write index");
     let oid = index.write_tree().expect("failed to write tree");
-    let signature = gitbutler_core::git::Signature::now("test", "test@email.com").unwrap();
+    let signature = git2::Signature::now("test", "test@email.com").unwrap();
     let head = repository.head().expect("failed to get head");
-    let commit_oid = repository
-        .commit(
-            Some(&head.name().unwrap()),
+    let repo: &git2::Repository = repository;
+    let commit_oid = repo
+        .commit_with_signature(
+            Some(&head.name().map(|name| name.parse().unwrap()).unwrap()),
             &signature,
             &signature,
             "some commit",
