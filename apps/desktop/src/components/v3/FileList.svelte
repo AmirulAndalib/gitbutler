@@ -42,6 +42,7 @@
 		selectionId: SelectionId;
 		active?: boolean;
 		conflictEntries?: ConflictEntriesObj;
+		draggableFiles: boolean;
 	};
 
 	const {
@@ -52,7 +53,8 @@
 		showCheckboxes,
 		active,
 		stackId,
-		conflictEntries
+		conflictEntries,
+		draggableFiles
 	}: Props = $props();
 
 	const [
@@ -226,7 +228,7 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'b' && (e.ctrlKey || e.metaKey) && e.altKey) {
+		if (e.code === 'KeyB' && (e.ctrlKey || e.metaKey) && e.altKey) {
 			branchChanges();
 			e.preventDefault();
 			return;
@@ -273,6 +275,7 @@
 		{active}
 		{listMode}
 		{depth}
+		draggable={draggableFiles}
 		executable={!!isExecutable}
 		showCheckbox={showCheckboxes}
 		isLast={idx === visibleFiles.length - 1}
@@ -286,6 +289,7 @@
 
 {#each Object.entries(unrepresentedConflictedEntries) as [path, kind]}
 	<FileListItemV3
+		draggable={draggableFiles}
 		filePath={path}
 		conflicted
 		conflictHint={conflictEntryHint(kind)}

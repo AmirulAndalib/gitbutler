@@ -15,6 +15,7 @@
 	import { AIService } from '$lib/ai/service';
 	import { PostHogWrapper } from '$lib/analytics/posthog';
 	import { BaseBranch } from '$lib/baseBranch/baseBranch';
+	import { type Commit } from '$lib/branches/v3';
 	import { projectAiGenEnabled } from '$lib/config/config';
 	import { ButRequestDetailsService } from '$lib/forge/butRequestDetailsService';
 	import { DefaultForgeFactory } from '$lib/forge/forgeFactory.svelte';
@@ -137,11 +138,20 @@
 	const canPublishBR = $derived(!!($canPublish && branchName && !reviewId));
 	const canPublishPR = $derived(!!(forge.current.authenticated && !pr));
 
+	function getDefaultTitle(commits: Commit[]): string {
+		if (commits.length > 0) {
+			const commitMessage = commits[0]!.message;
+			const { title } = splitMessage(commitMessage);
+			return title;
+		}
+		return branchName;
+	}
+
 	const prTitle = $derived(
 		new PrPersistedStore({
 			cacheKey: 'prtitle_' + projectId + '_' + branchName,
 			commits,
-			defaultFn: (commits) => splitMessage(commits[0]!.message).title
+			defaultFn: getDefaultTitle
 		})
 	);
 
@@ -196,12 +206,13 @@
 		if (isExecuting) return;
 		if (!$user) return;
 
+		const effectivePRBody = (await messageEditor?.getPlaintext()) ?? '';
 		// Declare early to have them inside the function closure, in case
 		// the component unmounts or updates.
 		const closureStackId = stackId;
 		const closureBranchName = branchName;
 		const title = $prTitle;
-		const body = shouldAddPrBody() ? $prBody : '';
+		const body = shouldAddPrBody() ? effectivePRBody : '';
 		const draft = $createDraft;
 
 		isCreatingReview = true;
@@ -226,7 +237,7 @@
 				return;
 			}
 			posthog.capture('Butler Review Created');
-			butRequestDetailsService.setDetails(reviewId, $prTitle, $prBody);
+			butRequestDetailsService.setDetails(reviewId, $prTitle, effectivePRBody);
 		}
 
 		if ((canPublishPR && $createPullRequest) || !canPublishBR) {
@@ -374,11 +385,13 @@
 						firstToken = false;
 					}
 					prBody.append(token);
+					messageEditor?.setText($prBody);
 				}
 			});
 
 			if (description) {
 				prBody.set(description);
+				messageEditor?.setText($prBody);
 			}
 		} finally {
 			aiIsLoading = false;

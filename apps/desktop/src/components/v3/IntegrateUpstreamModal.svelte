@@ -2,7 +2,9 @@
 	import ScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
 	import { writeClipboard } from '$lib/backend/clipboard';
 	import BaseBranchService from '$lib/baseBranch/baseBranchService.svelte';
+	import { confettiEnabled } from '$lib/config/uiFeatureFlags';
 	import { DefaultForgeFactory } from '$lib/forge/forgeFactory.svelte';
+	import { sprayConfetti } from '$lib/joy/confetti';
 	import { type Stack } from '$lib/stacks/stack';
 	import { TestId } from '$lib/testing/testIds';
 	import {
@@ -111,7 +113,7 @@
 		baseResolutionApproach = value as BaseBranchResolutionApproach;
 	}
 
-	async function integrate() {
+	async function integrate(e?: MouseEvent) {
 		integratingUpstream = 'loading';
 		await tick();
 		const baseResolution = getBaseBranchResolution(
@@ -120,11 +122,14 @@
 		);
 
 		try {
-			await integrateUpstream({
+			const result = await integrateUpstream({
 				projectId,
 				resolutions: Array.from(results.values()),
 				baseBranchResolution: baseResolution
 			});
+			if ($confettiEnabled && result.archivedBranches.length > 0 && e) {
+				sprayConfetti(e);
+			}
 		} finally {
 			await baseBranchService.refreshBaseBranch(projectId);
 			integratingUpstream = 'completed';
@@ -239,7 +244,7 @@
 	{onClose}
 	width={520}
 	noPadding
-	onSubmit={integrate}
+	onSubmit={() => integrate()}
 >
 	<ScrollableContainer maxHeight="70vh">
 		{#if base}
@@ -248,7 +253,7 @@
 					<span>Incoming changes</span><Badge>{base.upstreamCommits.length}</Badge>
 				</h3>
 				<div class="scroll-wrap">
-					<ScrollableContainer maxHeight={pxToRem(268)}>
+					<ScrollableContainer maxHeight="{pxToRem(268)}rem">
 						{#each base.upstreamCommits as commit}
 							{@const commitUrl = forge.current.commitUrl(commit.id)}
 							<SimpleCommitRow
@@ -277,7 +282,7 @@
 					Updating the workspace will add conflict markers to the following files.
 				</p>
 				<div class="scroll-wrap">
-					<ScrollableContainer maxHeight={pxToRem(268)}>
+					<ScrollableContainer maxHeight="{pxToRem(268)}rem">
 						{@const conflicts = branchStatuses?.worktreeConflicts}
 						{#each conflicts as file}
 							<FileListItemV3
@@ -331,7 +336,7 @@
 			<div class="section" class:section-disabled={isDivergedResolved}>
 				<h3 class="text-14 text-semibold">To be updated:</h3>
 				<div class="scroll-wrap">
-					<ScrollableContainer maxHeight={pxToRem(240)}>
+					<ScrollableContainer maxHeight="{pxToRem(240)}rem">
 						{#each statuses as { stack, status }}
 							{@render stackStatus(stack, status)}
 						{/each}
@@ -347,11 +352,15 @@
 			<Button
 				testId={TestId.IntegrateUpstreamActionButton}
 				wide
-				type="submit"
 				style="pop"
 				disabled={isDivergedResolved || !branchStatuses}
-				loading={integratingUpstream === 'loading' || !branchStatuses}>Update workspace</Button
+				loading={integratingUpstream === 'loading' || !branchStatuses}
+				onclick={async (e) => {
+					await integrate(e);
+				}}
 			>
+				Update workspace
+			</Button>
 		</div>
 	{/snippet}
 </Modal>

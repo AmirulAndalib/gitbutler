@@ -39,6 +39,7 @@
 	import { ProjectService } from '$lib/project/projectService';
 	import { getSecretsService } from '$lib/secrets/secretsService';
 	import { StackService } from '$lib/stacks/stackService.svelte';
+	import { ClientState } from '$lib/state/clientState.svelte';
 	import { UpstreamIntegrationService } from '$lib/upstream/upstreamIntegrationService';
 	import { debounce } from '$lib/utils/debounce';
 	import { BranchService as CloudBranchService } from '@gitbutler/shared/branches/branchService';
@@ -273,9 +274,15 @@
 	$effect(() => {
 		setActiveProjectOrRedirect();
 	});
-</script>
 
-<TryV3Modal />
+	// Clear the backend API when the project id changes.
+	const clientState = getContext(ClientState);
+	$effect(() => {
+		if (projectId) {
+			clientState.backendApi.util.resetApiState();
+		}
+	});
+</script>
 
 <!-- forces components to be recreated when projectId changes -->
 {#key projectId}
@@ -284,7 +291,7 @@
 
 	{#if !project}
 		<p>Project not found!</p>
-	{:else if baseBranchResponse.current.isLoading}
+	{:else if baseBranchResponse.current.isLoading && !baseBranch}
 		<FullviewLoading />
 	{:else if !baseBranch}
 		<NoBaseBranch />
@@ -302,6 +309,7 @@
 						{@render children()}
 					</Chrome>
 				{:else}
+					<TryV3Modal />
 					<Navigation {projectId} />
 					{@render children()}
 				{/if}

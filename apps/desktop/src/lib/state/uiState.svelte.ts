@@ -7,6 +7,7 @@ import {
 	type UnknownAction
 } from '@reduxjs/toolkit';
 import storage from 'redux-persist/lib/storage';
+import type { RejectionReason } from '$lib/stacks/stackService.svelte';
 export type DrawerPage = 'branch' | 'new-commit' | 'review' | undefined;
 
 export const uiStatePersistConfig = {
@@ -45,10 +46,23 @@ export type ProjectUiState = {
 	editingCommitMessage: boolean;
 };
 
+type GlobalModalType = 'commit-failed';
+type BaseGlobalModalState = {
+	type: GlobalModalType;
+};
+
+export type CommitFailedModalState = BaseGlobalModalState & {
+	type: 'commit-failed';
+	projectId: string;
+	targetBranchName: string;
+	newCommitId: string | undefined;
+	pathsToRejectedChanges: Record<string, RejectionReason>;
+};
+
+export type GlobalModalState = CommitFailedModalState;
+
 export type GlobalUiState = {
 	drawerHeight: number;
-	leftWidth: number;
-	stacksViewWidth: number;
 	drawerSplitViewWidth: number;
 	historySidebarWidth: number;
 	useRichText: boolean;
@@ -59,6 +73,7 @@ export type GlobalUiState = {
 	selectedTip: number | undefined;
 	channel: string | undefined;
 	draftBranchName: string | undefined;
+	modal: GlobalModalState | undefined;
 };
 
 /**
@@ -86,8 +101,6 @@ export class UiState {
 	/** Properties that are globally scoped. */
 	readonly global = this.buildGlobalProps<GlobalUiState>({
 		drawerHeight: 20,
-		leftWidth: 17.5,
-		stacksViewWidth: 23.75,
 		drawerSplitViewWidth: 20,
 		historySidebarWidth: 30,
 		useRichText: false,
@@ -97,7 +110,8 @@ export class UiState {
 		aiSuggestionsOnType: false,
 		selectedTip: undefined,
 		channel: undefined,
-		draftBranchName: undefined
+		draftBranchName: undefined,
+		modal: undefined
 	});
 
 	constructor(
@@ -186,12 +200,7 @@ export const uiStateSlice = createSlice({
 const { upsertOne } = uiStateSlice.actions;
 
 /** Allowed types for property values. */
-type UiStateValue =
-	| string
-	| number
-	| boolean
-	| Record<string, string | number | boolean>
-	| undefined;
+type UiStateValue = string | number | boolean | { [property: string]: UiStateValue } | undefined;
 
 /** Type held by the RTK entity adapter. */
 type UiStateVariable = {

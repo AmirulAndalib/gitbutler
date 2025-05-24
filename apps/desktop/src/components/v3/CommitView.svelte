@@ -116,8 +116,6 @@
 	async function handleUncommit() {
 		if (!branchName) return;
 		await stackService.uncommit({ projectId, stackId, branchName, commitId: commitKey.commitId });
-		projectState.drawerPage.set(undefined);
-		if (branchName) stackState.selection.set({ branchName, commitId: undefined });
 	}
 
 	function canEdit() {
@@ -275,11 +273,12 @@
 
 				{#snippet filesSplitView()}
 					<ReduxResult {projectId} {stackId} result={changesResult.current}>
-						{#snippet children(changes)}
+						{#snippet children(changes, { projectId, stackId })}
 							<ChangedFiles
 								title="Changed files"
-								projectId={env.projectId}
-								stackId={env.stackId}
+								{projectId}
+								{stackId}
+								draggableFiles={true}
 								selectionId={{ type: 'commit', commitId: commit.id }}
 								changes={changes.changes.filter(
 									(change) => !(change.path in (changes.conflictEntries?.entries ?? {}))

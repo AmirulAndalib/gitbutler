@@ -36,7 +36,7 @@
 		tooltipDelay?: number;
 		testId?: string;
 		// Events
-		onclick?: (e: MouseEvent) => void;
+		onclick?: ((e: MouseEvent) => Promise<void>) | ((e: MouseEvent) => void);
 		onmousedown?: (e: MouseEvent) => void;
 		oncontextmenu?: (e: MouseEvent) => void;
 		onkeydown?: (e: KeyboardEvent) => void;
@@ -89,12 +89,12 @@
 		children
 	}: Props = $props();
 
-	function handleAction(e: MouseEvent) {
+	async function handleAction(e: MouseEvent) {
 		if (loading || disabled) {
 			e.preventDefault();
 			e.stopPropagation();
 		} else {
-			onclick?.(e);
+			await onclick?.(e);
 		}
 	}
 </script>
@@ -120,10 +120,10 @@
 		style:align-self={align}
 		style:width={width !== undefined
 			? typeof width === 'number'
-				? pxToRem(width)
+				? `${pxToRem(width)}rem`
 				: width
 			: undefined}
-		style:max-width={maxWidth !== undefined ? pxToRem(maxWidth) : undefined}
+		style:max-width={maxWidth !== undefined ? `${pxToRem(maxWidth)}rem` : undefined}
 		style={customStyle}
 		disabled={disabled || loading}
 		onclick={handleAction}

@@ -28,8 +28,6 @@ const MOCK_PROJECT_UI_STATE: ProjectUiState = {
 
 const MOCK_GLOBAL_UI_STATE: GlobalUiState = {
 	drawerHeight: 20,
-	leftWidth: 17.5,
-	stacksViewWidth: 21.25,
 	drawerSplitViewWidth: 20,
 	historySidebarWidth: 30,
 	useRichText: true,
@@ -39,7 +37,8 @@ const MOCK_GLOBAL_UI_STATE: GlobalUiState = {
 	draftBranchName: undefined,
 	useRuler: false,
 	rulerCountValue: 0,
-	wrapTextByRuler: false
+	wrapTextByRuler: false,
+	modal: undefined
 };
 
 export function getUiStateMock() {
@@ -49,16 +48,6 @@ export function getUiStateMock() {
 		drawerHeight: {
 			get() {
 				return MOCK_GLOBAL_UI_STATE.drawerHeight;
-			}
-		},
-		leftWidth: {
-			get() {
-				return MOCK_GLOBAL_UI_STATE.leftWidth;
-			}
-		},
-		stacksViewWidth: {
-			get() {
-				return MOCK_GLOBAL_UI_STATE.stacksViewWidth;
 			}
 		},
 		drawerSplitViewWidth: {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { SettingsService } from '$lib/config/appSettingsV2';
-	import { ircEnabled, ircServer } from '$lib/config/uiFeatureFlags';
+	import { confettiEnabled, ircEnabled, ircServer } from '$lib/config/uiFeatureFlags';
 	import { User } from '$lib/user/user';
 	import { getContext, getContextStore } from '@gitbutler/shared/context';
 	import SectionCard from '@gitbutler/ui/SectionCard.svelte';
@@ -22,7 +22,7 @@
 </p>
 
 <div class="experimental-settings__toggles">
-	<SectionCard labelFor="v3Design" roundedBottom={$user?.role !== 'admin'} orientation="row">
+	<SectionCard labelFor="v3Design" orientation="row" roundedBottom={false}>
 		{#snippet title()}
 			V3 Design
 		{/snippet}
@@ -50,6 +50,28 @@
 				id="v3Design"
 				checked={$settingsStore?.featureFlags.v3}
 				onclick={() => settingsService.updateFeatureFlags({ v3: !$settingsStore?.featureFlags.v3 })}
+			/>
+		{/snippet}
+	</SectionCard>
+
+	<SectionCard
+		labelFor="confetti"
+		roundedTop={false}
+		roundedBottom={$user?.role !== 'admin'}
+		orientation="row"
+	>
+		{#snippet title()}
+			Confetti
+		{/snippet}
+		{#snippet caption()}
+			<p>Mom's spaghetti, who want's some confetti? 🎉</p>
+		{/snippet}
+
+		{#snippet actions()}
+			<Toggle
+				id="confetti"
+				checked={$confettiEnabled}
+				onclick={() => confettiEnabled.set(!$confettiEnabled)}
 			/>
 		{/snippet}
 	</SectionCard>

@@ -36,6 +36,7 @@
 		depth?: number;
 		executable?: boolean;
 		showCheckbox?: boolean;
+		draggable: boolean;
 		onclick?: (e: MouseEvent) => void;
 		onkeydown?: (e: KeyboardEvent) => void;
 		onCloseClick?: () => void;
@@ -58,6 +59,7 @@
 		executable,
 		showCheckbox,
 		conflictEntries,
+		draggable,
 		onclick,
 		onkeydown,
 		onCloseClick
@@ -122,7 +124,7 @@
 	}
 
 	const conflict = $derived(conflictEntries ? conflictEntries.entries[change.path] : undefined);
-	const draggableDisabled = $derived(showCheckbox || selectionId.type === 'branch');
+	const draggableDisabled = $derived(!draggable || showCheckbox || selectionId.type === 'branch');
 </script>
 
 <div
@@ -154,7 +156,7 @@
 		<FileViewHeader
 			filePath={change.path}
 			fileStatus={computeChangeStatus(change)}
-			draggable={!showCheckbox}
+			draggable={!showCheckbox && draggable}
 			linesAdded={lineChangesStat?.added}
 			linesRemoved={lineChangesStat?.removed}
 			fileStatusTooltip={previousTooltipText}
@@ -181,7 +183,7 @@
 			{isLast}
 			{depth}
 			{executable}
-			draggable={!showCheckbox}
+			draggable={!draggableDisabled}
 			{onkeydown}
 			locked={false}
 			conflicted={!!conflict}

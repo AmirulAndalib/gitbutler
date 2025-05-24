@@ -1,12 +1,12 @@
 [package]
-name = "but-cli"
+name = "but-testing"
 version = "0.0.0"
 edition = "2024"
 authors = ["GitButler <gitbutler@gitbutler.com>"]
 publish = false
 
 [[bin]]
-name = "but-cli"
+name = "but-testing"
 path = "src/main.rs"
 doctest = false
 
@@ -27,6 +27,7 @@ but-hunk-assignment.workspace = true
 gitbutler-branch-actions.workspace = true
 gitbutler-branch.workspace = true
 gitbutler-id.workspace = true
+gitbutler-operating-modes.workspace = true
 
 gitbutler-commit = { workspace = true, optional = true, features = ["testing"] }
 

@@ -10,9 +10,10 @@
 		projectId: string;
 		stackId?: string;
 		selectionId?: SelectionId;
+		draggableFiles: boolean;
 	};
 
-	let { projectId, selectionId, stackId }: Props = $props();
+	let { projectId, selectionId, stackId, draggableFiles }: Props = $props();
 
 	const [idSelection] = inject(IdSelection);
 
@@ -23,12 +24,13 @@
 	{#if selection.length === 0}
 		<FileViewPlaceholder />
 	{:else}
-		<ScrollableContainer wide>
+		<ScrollableContainer wide zIndex="var(--z-floating)">
 			{#each selection as selectedFile}
 				<SelectedChange
 					{projectId}
 					{stackId}
 					{selectedFile}
+					draggable={draggableFiles}
 					onCloseClick={() => {
 						if (selectionId) {
 							idSelection.remove(selectedFile.path, selectionId);

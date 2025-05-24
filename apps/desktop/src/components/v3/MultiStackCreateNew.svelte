@@ -91,6 +91,11 @@
 		}
 	}
 
+	async function showAndPrefillName() {
+		createRefModal?.show();
+		createRefName = (await stackService.newBranchName(projectId))?.data ?? '';
+	}
+
 	// TODO: it would be nice to remember the last selected option for the next time the modal is opened
 </script>
 
@@ -99,7 +104,7 @@
 	type="button"
 	class="new-stack-btn"
 	class:no-stacks={noStacks}
-	onclick={() => createRefModal?.show()}
+	onclick={() => showAndPrefillName()}
 	bind:this={el}
 	onkeydown={handleArrowNavigation}
 >

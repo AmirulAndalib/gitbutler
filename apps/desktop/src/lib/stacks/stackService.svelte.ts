@@ -91,19 +91,28 @@ export interface BranchPushResult {
 	remote: string;
 }
 
-type RejectionReason =
-	| 'NoEffectiveChanges'
-	| 'CherryPickMergeConflict'
-	| 'WorkspaceMergeConflict'
-	| 'WorktreeFileMissingForObjectConversion'
-	| 'FileToLargeOrBinary'
-	| 'PathNotFoundInBaseTree'
-	| 'UnsupportedDirectoryEntry'
-	| 'UnsupportedTreeEntry'
-	| 'MissingDiffSpecAssociation';
+/**
+ * All possible reasons for a commit to be rejected.
+ *
+ * This is used to display a message to the user when a commit fails.
+ * @note - This reasons are in order of priority, from most to least important!
+ */
+export const REJECTTION_REASONS = [
+	'workspaceMergeConflict',
+	'cherryPickMergeConflict',
+	'noEffectiveChanges',
+	'worktreeFileMissingForObjectConversion',
+	'fileToLargeOrBinary',
+	'pathNotFoundInBaseTree',
+	'unsupportedDirectoryEntry',
+	'unsupportedTreeEntry',
+	'missingDiffSpecAssociation'
+] as const;
+
+export type RejectionReason = (typeof REJECTTION_REASONS)[number];
 
 export type CreateCommitOutcome = {
-	newCommit: string;
+	newCommit: string | null;
 	pathsToRejectedChanges: [RejectionReason, string][];
 };
 
@@ -208,7 +217,12 @@ export class StackService {
 	}
 
 	get newStack() {
-		return this.api.endpoints.createStack.useMutation();
+		return this.api.endpoints.createStack.useMutation({
+			sideEffect: (result, args) => {
+				this.uiState.project(args.projectId).stackId.set(result.id);
+				this.uiState.stack(result.id).selection.set({ branchName: result.heads[0]!.name });
+			}
+		});
 	}
 
 	get newStackMutation() {
@@ -423,6 +437,13 @@ export class StackService {
 		);
 	}
 
+	fetchCommitDetails(projectId: string, commitId: string) {
+		return this.api.endpoints.commitDetails.fetch(
+			{ projectId, commitId },
+			{ transform: (result) => result.details }
+		);
+	}
+
 	/**
 	 * Gets the changes for a given branch.
 	 * If the branch is part of a stack and if the stackId is provided, this will include only the changes up to the next branch in the stack.
@@ -486,7 +507,12 @@ export class StackService {
 	}
 
 	get newBranch() {
-		return this.api.endpoints.newBranch.useMutation();
+		return this.api.endpoints.newBranch.useMutation({
+			sideEffect: (_, args) => {
+				this.uiState.project(args.projectId).stackId.set(args.stackId);
+				this.uiState.stack(args.stackId).selection.set({ branchName: args.request.name });
+			}
+		});
 	}
 
 	async uncommit(args: {
@@ -495,7 +521,12 @@ export class StackService {
 		branchName: string;
 		commitId: string;
 	}) {
-		return await this.api.endpoints.uncommit.mutate(args);
+		const result = await this.api.endpoints.uncommit.mutate(args);
+		const selection = this.uiState.stack(args.stackId).selection;
+		if (args.commitId === selection.current?.commitId) {
+			selection.set(undefined);
+		}
+		return result;
 	}
 
 	get insertBlankCommit() {

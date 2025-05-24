@@ -664,33 +664,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1628fb46dfa0b37568d12e5edd512553eccf6a22a78e8bde00bb4aed84d5bdbf"
 
 [[package]]
-name = "but-cli"
+name = "but"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "but-core",
- "but-hunk-assignment",
- "but-hunk-dependency",
- "but-settings",
- "but-workspace",
  "clap",
- "dirs-next",
- "gitbutler-branch",
- "gitbutler-branch-actions",
- "gitbutler-command-context",
- "gitbutler-commit",
- "gitbutler-filemonitor",
- "gitbutler-id",
- "gitbutler-project",
- "gitbutler-stack",
- "gix",
- "itertools",
+ "rmcp",
  "serde",
- "serde_json",
  "tokio",
- "tracing",
- "tracing-forest",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -798,6 +779,37 @@ dependencies = [
  "gix",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "but-testing"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "but-core",
+ "but-hunk-assignment",
+ "but-hunk-dependency",
+ "but-settings",
+ "but-workspace",
+ "clap",
+ "dirs-next",
+ "gitbutler-branch",
+ "gitbutler-branch-actions",
+ "gitbutler-command-context",
+ "gitbutler-commit",
+ "gitbutler-filemonitor",
+ "gitbutler-id",
+ "gitbutler-operating-modes",
+ "gitbutler-project",
+ "gitbutler-stack",
+ "gix",
+ "itertools",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-forest",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2455,13 +2467,13 @@ dependencies = [
 [[package]]
 name = "git2-hooks"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f930f5fe956eb55418c0da7e40736636e3fe80b577d8b60d9e54da0fc038619"
+source = "git+https://github.com/extrawurst/gitui?rev=fe5e7807197657c6dbb9d1239286f6ffb4c82a0b#fe5e7807197657c6dbb9d1239286f6ffb4c82a0b"
 dependencies = [
  "git2",
+ "gix-path 0.10.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "log",
  "shellexpand",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -6378,6 +6390,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
 name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7288,6 +7306,38 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "rmcp"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33a0110d28bd076f39e14bfd5b0340216dd18effeb5d02b43215944cc3e5c751"
+dependencies = [
+ "base64 0.21.7",
+ "chrono",
+ "futures",
+ "paste",
+ "pin-project-lite",
+ "rmcp-macros",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "rmcp-macros"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6e2b2fd7497540489fa2db285edd43b7ed14c49157157438664278da6e42a7a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
 ]
 
 [[package]]
